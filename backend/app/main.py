@@ -15,6 +15,7 @@ from app.exceptions import (
     validation_exception_handler,
 )
 from app.routers.analysis import router as analysis_router
+from app.routers.extract_features import router as extraction_router
 from app.routers.export_pdf import router as export_router
 from app.routers.harmonize import router as harmonize_router
 from app.routers.upload import router as upload_router
@@ -46,6 +47,7 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 app.include_router(upload_router)
 app.include_router(harmonize_router)
 app.include_router(analysis_router)
+app.include_router(extraction_router)
 app.include_router(export_router)
 
 
@@ -63,6 +65,7 @@ async def health():
                 "attribute_comparison",
                 "change_detection",
                 "transparent_rule_based_confidence",
+                "classical_imagery_feature_extraction_fallback",
             ],
         }
     )
