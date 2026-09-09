@@ -14,6 +14,7 @@ from shapely.geometry import Point, box, shape
 
 from app.config import DEFAULT_ASSUMED_CRS, TARGET_CRS
 from app.exceptions import SpatialShiftError
+from app.services.schemas_adapter import profile_dataframe_schema
 from app.store import DatasetRecord, store
 
 SHAPEFILE_EXTS = {".shp", ".shx", ".dbf", ".prj", ".cpg", ".sbn", ".sbx", ".qix", ".fix"}
@@ -21,9 +22,9 @@ GEOJSON_EXTS = {".geojson", ".json"}
 CSV_EXTS = {".csv"}
 RASTER_EXTS = {".tif", ".tiff"}
 
-LAT_ALIASES = ("lat", "latitude", "y", "northing")
-LON_ALIASES = ("lon", "lng", "long", "longitude", "x", "easting")
-WKT_ALIASES = ("wkt", "geom", "geometry", "the_geom")
+LAT_ALIASES = ("lat", "latitude", "y", "northing", "lat_dd", "latitude_dd")
+LON_ALIASES = ("lon", "lng", "long", "longitude", "x", "easting", "lon_dd", "longitude_dd")
+WKT_ALIASES = ("wkt", "geom", "geometry", "the_geom", "wkt_geom")
 
 
 def _suffix(name: str) -> str:
@@ -116,11 +117,7 @@ def _read_shapefile(directory: Path) -> gpd.GeoDataFrame:
 
 
 def _read_raster_footprint(path: Path) -> gpd.GeoDataFrame:
-    """Read real GeoTIFF metadata and expose a georeferenced footprint layer.
-
-    This is metadata/footprint ingestion, not imagery feature extraction. Raster
-    pixels remain in their original uploaded file for a future persistent store.
-    """
+    """Read real GeoTIFF metadata and expose a georeferenced footprint layer."""
     try:
         with rasterio.open(path) as dataset:
             if dataset.crs is None:
@@ -165,6 +162,7 @@ async def ingest_uploads(files: list[UploadFile]) -> DatasetRecord:
     display_name = files[0].filename or f"upload.{source_format}"
     with tempfile.TemporaryDirectory(prefix="spatialshift-") as tmp:
         written = await _write_uploads(files, Path(tmp))
+        raster_bytes = None
         if source_format == "shapefile":
             gdf = _read_shapefile(Path(tmp))
         elif source_format == "geojson":
@@ -172,24 +170,51 @@ async def ingest_uploads(files: list[UploadFile]) -> DatasetRecord:
         elif source_format == "csv":
             gdf = _read_csv(next(path for path in written if _suffix(path.name) in CSV_EXTS))
         else:
-            gdf = _read_raster_footprint(next(path for path in written if _suffix(path.name) in RASTER_EXTS))
-        record = DatasetRecord(gdf=normalize_crs(gdf), source_format=source_format, filename=display_name)
-        if source_format == "geotiff":
             raster_path = next(path for path in written if _suffix(path.name) in RASTER_EXTS)
-            record.raster_bytes = raster_path.read_bytes()
+            gdf = _read_raster_footprint(raster_path)
+            raster_bytes = raster_path.read_bytes()
+
+        normalized = normalize_crs(gdf)
+        schema_profile = profile_dataframe_schema(normalized) if source_format != "geotiff" else {
+            "archetype": "raster_imagery",
+            "archetype_name": "GeoTIFF Imagery / Elevation Model",
+            "description": "Georeferenced orthomosaic or digital elevation grid.",
+            "confidence_pct": 100,
+            "mapped_fields": {},
+            "unmapped_fields": [],
+            "total_columns": 0,
+            "geometry_types": ["Polygon"],
+        }
+
+        record = DatasetRecord(
+            gdf=normalized,
+            source_format=source_format,
+            filename=display_name,
+            kind=schema_profile.get("archetype", "generic"),
+            schema_profile=schema_profile,
+        )
+        if raster_bytes:
+            record.raster_bytes = raster_bytes
+
         return store.put(record)
 
 
 def dataset_summary(record: DatasetRecord) -> dict:
     gdf = record.gdf
+    wgs84_gdf = gdf.to_crs("EPSG:4326")
     return {
         "dataset_id": record.id,
         "filename": record.filename,
         "source_format": record.source_format,
+        "kind": record.kind,
         "feature_count": int(len(gdf)),
         "crs": TARGET_CRS,
         "bounds": [float(value) for value in gdf.total_bounds],
+        "bounds_wgs84": [float(value) for value in wgs84_gdf.total_bounds],
         "geometry_types": sorted({geom.geom_type for geom in gdf.geometry if geom is not None}),
         "columns": [column for column in gdf.columns if column != "geometry"],
+        "schema_profile": record.schema_profile,
+        "has_raster": bool(record.raster_bytes),
         "created_at": record.created_at,
+        "geojson": wgs84_gdf.__geo_interface__,
     }

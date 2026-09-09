@@ -15,16 +15,20 @@ from app.exceptions import (
     validation_exception_handler,
 )
 from app.routers.analysis import router as analysis_router
-from app.routers.extract_features import router as extraction_router
+from app.routers.events import router as events_router
+from app.routers.exchange import router as exchange_router
 from app.routers.export_pdf import router as export_router
+from app.routers.extract_features import router as extraction_router
 from app.routers.harmonize import router as harmonize_router
+from app.routers.raster import router as raster_router
 from app.routers.upload import router as upload_router
 
 app = FastAPI(
     title="SpatialShift AI",
     description=(
-        "Cadastral ingest, topology correction, IoU layer matching, "
-        "change detection, and transparent confidence scoring."
+        "Production-grade land record harmonization engine: Multi-source vector & raster ingest, "
+        "orthomosaic & DSM hillshade rendering, schema adaptation, topological planarization, "
+        "IoU spatial matching, live SSE job streams, and inter-departmental exchange API."
     ),
     version=__version__,
 )
@@ -36,7 +40,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition", "X-ULPIN", "X-Dataset-Id"],
+    expose_headers=["Content-Disposition", "X-ULPIN", "X-Dataset-Id", "X-Raster-Type", "X-Bounds-WGS84"],
 )
 
 app.add_exception_handler(SpatialShiftError, spatial_shift_exception_handler)
@@ -48,6 +52,9 @@ app.include_router(upload_router)
 app.include_router(harmonize_router)
 app.include_router(analysis_router)
 app.include_router(extraction_router)
+app.include_router(raster_router)
+app.include_router(events_router)
+app.include_router(exchange_router)
 app.include_router(export_router)
 
 
@@ -60,10 +67,16 @@ async def health():
             "crs": "EPSG:32643",
             "capabilities": [
                 "vector_ingest",
-                "topology_correction",
+                "raster_imagery_rendering",
+                "dsm_dtm_hillshade_engine",
+                "multi_source_schema_adaptation",
+                "topology_planarization",
                 "iou_matching",
                 "attribute_comparison",
                 "change_detection",
+                "live_sse_event_streaming",
+                "sqlite_persistence",
+                "inter_departmental_exchange_api",
                 "transparent_rule_based_confidence",
                 "classical_imagery_feature_extraction_fallback",
             ],
