@@ -25,6 +25,8 @@ class DatasetRecord:
         self.kind = kind
         self.created_at = datetime.now(timezone.utc).isoformat()
         self.harmonized: gpd.GeoDataFrame | None = None
+        self.raster_bytes: bytes | None = None
+        self.feature_extractions: dict[str, Any] = {}
         self.harmonize_meta: dict[str, Any] = {}
 
 
