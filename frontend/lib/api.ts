@@ -5,10 +5,7 @@ export type HealthData = {
   capabilities?: string[];
 };
 
-export type GeoJsonCollection = {
-  type: 'FeatureCollection';
-  features: Array<Record<string, unknown>>;
-};
+export type GeoJsonCollection = GeoJSON.FeatureCollection;
 
 export type UploadData = {
   dataset_id: string;
