@@ -28,6 +28,26 @@
 
 - **Classical Feature Extraction Fallback:** The raster boundary extractor (`services/feature_extract.py`) uses classical gradient thresholding and rasterio sieve filtering to generate candidate polygons from imagery. It is honestly presented as a classical CV fallback and does not falsely claim to be Mask R-CNN or a deep learning model checkpoint.
 
+## Deployment Specifications
+
+### Backend (Render Web Service)
+- **Root Directory:** `backend`
+- **Runtime:** `Python 3`
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Health Check Path:** `/api/health`
+- **Environment Variables:**
+  - `PYTHON_VERSION`: `3.12.8`
+  - `CORS_ORIGINS`: Comma-separated list of frontend domains or `*`
+
+### Frontend (Vercel)
+- **Root Directory:** `frontend`
+- **Framework Preset:** `Next.js`
+- **Build Command:** `next build`
+- **Output Directory:** `.next`
+- **Environment Variables:**
+  - `NEXT_PUBLIC_API_URL`: The deployed Render backend HTTPS URL (e.g. `https://spatialshift-api.onrender.com`)
+
 ## Research grounding & paper references
 
 1. **CadastreVision (Grift, Persello, Koeva, 2024):** Grounding for multi-source cadastral boundary harmonization and record linkage.

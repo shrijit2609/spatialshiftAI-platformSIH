@@ -17,14 +17,18 @@ _DEV_CORS_ORIGINS = [
 ]
 
 
-def _cors_origins() -> list[str]:
+def get_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ORIGINS", "")
+    if not raw.strip():
+        return list(_DEV_CORS_ORIGINS)
+    if raw.strip() == "*":
+        return ["*"]
     origins = list(_DEV_CORS_ORIGINS)
-    extra = os.getenv("CORS_ORIGINS", "")
-    for part in extra.split(","):
-        origin = part.strip().rstrip("/")
-        if origin and origin not in origins:
-            origins.append(origin)
+    for part in raw.split(","):
+        clean = part.strip().rstrip("/")
+        if clean and clean not in origins:
+            origins.append(clean)
     return origins
 
 
-CORS_ORIGINS = _cors_origins()
+CORS_ORIGINS = get_cors_origins()

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from fastapi.exceptions import RequestValidationError
@@ -33,11 +34,13 @@ app = FastAPI(
     version=__version__,
 )
 
+is_wildcard = "*" in CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
-    allow_credentials=True,
+    allow_origin_regex=None if is_wildcard else r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.vercel\.app",
+    allow_credentials=not is_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["Content-Disposition", "X-ULPIN", "X-Dataset-Id", "X-Raster-Type", "X-Bounds-WGS84"],
@@ -58,12 +61,27 @@ app.include_router(exchange_router)
 app.include_router(export_router)
 
 
+@app.get("/")
+async def root():
+    return success_payload(
+        {
+            "service": "spatialshift-ai",
+            "version": __version__,
+            "status": "healthy",
+            "docs": "/docs",
+            "health": "/api/health",
+        },
+        message="SpatialShift AI API is running.",
+    )
+
+
 @app.get("/api/health")
 async def health():
     return success_payload(
         {
             "service": "spatialshift-ai",
             "version": __version__,
+            "status": "healthy",
             "crs": "EPSG:32643",
             "capabilities": [
                 "vector_ingest",
@@ -82,3 +100,10 @@ async def health():
             ],
         }
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)

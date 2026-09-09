@@ -10,3 +10,5 @@ rasterio>=1.4.0
 reportlab>=4.2.0
 fiona>=1.10.0
 pyogrio>=0.10.0
+pillow>=10.0.0
+aiofiles>=24.1.0
