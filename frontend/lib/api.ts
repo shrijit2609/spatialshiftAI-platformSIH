@@ -119,6 +119,8 @@ export async function runHarmonization(body: {
   }));
 }
 
+export type FeatureExtractionData = { dataset_id: string; feature_count: number; method: string; method_note: string; geojson: GeoJsonCollection };
+
 export type HarmonizeJob = { job_id: string; dataset_id: string; status: 'queued' | 'running' | 'complete' | 'failed'; stage: string; progress: number; message: string; result: HarmonizeData | null; error: string | null; };
 
 export async function startHarmonizationJob(body: {
@@ -131,6 +133,12 @@ export async function startHarmonizationJob(body: {
 
 export async function getHarmonizationJob(jobId: string): Promise<HarmonizeJob> {
   return parseJsonEnvelope<HarmonizeJob>(await apiFetch(`/api/harmonize/jobs/${jobId}`));
+}
+
+export async function extractRasterFeatures(body: { dataset_id: string; min_area_m2?: number }): Promise<FeatureExtractionData> {
+  return parseJsonEnvelope<FeatureExtractionData>(await apiFetch('/api/extract-features', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  }));
 }
 
 export async function analyzeLayers(body: {
