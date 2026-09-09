@@ -14,6 +14,7 @@ from app.exceptions import (
     unhandled_exception_handler,
     validation_exception_handler,
 )
+from app.routers.analysis import router as analysis_router
 from app.routers.export_pdf import router as export_router
 from app.routers.harmonize import router as harmonize_router
 from app.routers.upload import router as upload_router
@@ -21,8 +22,8 @@ from app.routers.upload import router as upload_router
 app = FastAPI(
     title="SpatialShift AI",
     description=(
-        "Cadastral ingest, topological planarization, confidence scoring, "
-        "and simulated ULPIN mutation certificates."
+        "Cadastral ingest, topology correction, IoU layer matching, "
+        "change detection, and transparent confidence scoring."
     ),
     version=__version__,
 )
@@ -44,6 +45,7 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 
 app.include_router(upload_router)
 app.include_router(harmonize_router)
+app.include_router(analysis_router)
 app.include_router(export_router)
 
 
@@ -54,5 +56,13 @@ async def health():
             "service": "spatialshift-ai",
             "version": __version__,
             "crs": "EPSG:32643",
+            "capabilities": [
+                "vector_ingest",
+                "topology_correction",
+                "iou_matching",
+                "attribute_comparison",
+                "change_detection",
+                "transparent_rule_based_confidence",
+            ],
         }
     )
