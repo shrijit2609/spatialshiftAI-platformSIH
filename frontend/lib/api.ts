@@ -42,7 +42,11 @@ export type HarmonizeData = {
   mean_snap_distance_m: number;
   confidence: ConfidenceBreakdown;
   geojson: GeoJsonCollection;
+  conflicts: SpatialConflict[];
+  conflict_geojson: GeoJsonCollection;
 };
+
+export type SpatialConflict = { type: string; parcel_id?: string; reference_id?: string; message: string; area_m2?: number; iou?: number; fields?: string[] };
 
 export type SpatialAnalysisData = {
   matched_count: number;
@@ -113,6 +117,20 @@ export async function runHarmonization(body: {
   return parseJsonEnvelope<HarmonizeData>(await apiFetch('/api/harmonize', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   }));
+}
+
+export type HarmonizeJob = { job_id: string; dataset_id: string; status: 'queued' | 'running' | 'complete' | 'failed'; stage: string; progress: number; message: string; result: HarmonizeData | null; error: string | null; };
+
+export async function startHarmonizationJob(body: {
+  dataset_id: string; building_dataset_id?: string | null; sliver_area_m2?: number; snap_tolerance_m?: number; overlap_area_m2?: number;
+}): Promise<HarmonizeJob> {
+  return parseJsonEnvelope<HarmonizeJob>(await apiFetch('/api/harmonize/jobs', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  }));
+}
+
+export async function getHarmonizationJob(jobId: string): Promise<HarmonizeJob> {
+  return parseJsonEnvelope<HarmonizeJob>(await apiFetch(`/api/harmonize/jobs/${jobId}`));
 }
 
 export async function analyzeLayers(body: {
