@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.exceptions import SpatialShiftError, success_payload
 from app.schemas import HarmonizeRequest
+from app.services.analysis import conflict_feature_collection, detect_topology_conflicts
 from app.services.confidence import score_harmonization
 from app.services.planarize import planarize_dataset
 from app.store import ProcessingJob, store
@@ -27,6 +28,9 @@ async def _run_harmonization(body: HarmonizeRequest, job: ProcessingJob | None =
             "Harmonization requires a polygonal cadastral layer, not a raster footprint or point layer.",
             code="POLYGON_LAYER_REQUIRED",
         )
+
+    update("Detecting topology conflicts", 25, "Measuring input slivers and parcel overlaps.")
+    conflicts = detect_topology_conflicts(record.gdf, body.sliver_area_m2, body.overlap_area_m2)
 
     update("Correcting topology", 45, "Repairing geometry, snapping nodes, planarizing overlaps, and removing slivers.")
     try:
@@ -64,6 +68,8 @@ async def _run_harmonization(body: HarmonizeRequest, job: ProcessingJob | None =
         "building_wall_source": record.harmonize_meta["building_wall_source"],
         "mean_snap_distance_m": result.mean_snap_distance_m,
         "confidence": confidence,
+        "conflicts": [{key: value for key, value in conflict.items() if key != "geometry"} for conflict in conflicts],
+        "conflict_geojson": conflict_feature_collection(conflicts, str(record.gdf.crs)),
         "geojson": result.gdf.to_crs("EPSG:4326").__geo_interface__,
     }
 
