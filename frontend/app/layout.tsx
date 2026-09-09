@@ -14,7 +14,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SpatialShift AI — GeoAI Land Record Harmonization',
+  title: 'SpatialShift AI â€” GeoAI Land Record Harmonization',
   description:
     'AI-powered harmonization of drone imagery, cadastral shapefiles, and tax records into a unified land parcel registry.',
   icons: {
