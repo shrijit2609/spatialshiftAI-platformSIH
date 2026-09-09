@@ -145,3 +145,42 @@ def conflict_feature_collection(conflicts: list[dict[str, Any]], crs: str) -> di
     if not records:
         return {"type": "FeatureCollection", "features": []}
     return gpd.GeoDataFrame(records, geometry=geometries, crs=crs).to_crs("EPSG:4326").__geo_interface__
+
+
+def detect_topology_conflicts(
+    layer: gpd.GeoDataFrame,
+    sliver_area_m2: float,
+    overlap_area_m2: float,
+) -> list[dict[str, Any]]:
+    """Detect concrete input-layer slivers and pairwise overlaps before repair."""
+    polygons = layer[layer.geometry.geom_type.isin(["Polygon", "MultiPolygon"])]
+    conflicts: list[dict[str, Any]] = []
+    for index, row in polygons.iterrows():
+        geometry = row.geometry
+        feature_id = _identifier(row, int(index))
+        if geometry.area < sliver_area_m2:
+            conflicts.append({
+                "type": "sliver",
+                "parcel_id": feature_id,
+                "message": "Polygon area is below the configured sliver threshold.",
+                "area_m2": round(float(geometry.area), 3),
+                "geometry": geometry,
+            })
+    rows = list(polygons.iterrows())
+    for position, (left_index, left_row) in enumerate(rows):
+        for right_index, right_row in rows[position + 1:]:
+            left, right = left_row.geometry, right_row.geometry
+            if not left.intersects(right):
+                continue
+            overlap = left.intersection(right)
+            if overlap.is_empty or overlap.area < overlap_area_m2:
+                continue
+            conflicts.append({
+                "type": "overlap",
+                "parcel_id": _identifier(left_row, int(left_index)),
+                "reference_id": _identifier(right_row, int(right_index)),
+                "message": "Input parcels overlap above the configured area threshold.",
+                "area_m2": round(float(overlap.area), 3),
+                "geometry": overlap,
+            })
+    return conflicts
