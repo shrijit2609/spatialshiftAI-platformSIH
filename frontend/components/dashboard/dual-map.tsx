@@ -12,14 +12,15 @@ interface DualMapProps {
   onSelectParcel: (id: string | null) => void;
   sourceGeojson?: GeoJsonCollection;
   harmonizedGeojson?: GeoJsonCollection;
+  conflictGeojson?: GeoJsonCollection;
 }
 
 const EMPTY: GeoJsonCollection = { type: 'FeatureCollection', features: [] };
 
-function style(data: GeoJsonCollection, final: boolean): StyleSpecification {
+function style(data: GeoJsonCollection, final: boolean, conflicts: GeoJsonCollection = EMPTY): StyleSpecification {
   return {
     version: 8,
-    sources: { parcels: { type: 'geojson', data } },
+    sources: { parcels: { type: 'geojson', data }, conflicts: { type: 'geojson', data: conflicts } },
     layers: [
       { id: 'background', type: 'background', paint: { 'background-color': final ? '#071a25' : '#21170b' } },
       {
@@ -45,7 +46,7 @@ function parcelId(feature: MapGeoJSONFeature): string | null {
   return value === undefined || value === null ? null : String(value);
 }
 
-export function DualMap({ harmonized, selectedParcelId, onSelectParcel, sourceGeojson, harmonizedGeojson }: DualMapProps) {
+export function DualMap({ harmonized, selectedParcelId, onSelectParcel, sourceGeojson, harmonizedGeojson, conflictGeojson }: DualMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const leftElement = useRef<HTMLDivElement>(null);
   const rightElement = useRef<HTMLDivElement>(null);
@@ -56,12 +57,13 @@ export function DualMap({ harmonized, selectedParcelId, onSelectParcel, sourceGe
   const syncing = useRef(false);
   const raw = sourceGeojson || EMPTY;
   const final = harmonizedGeojson || EMPTY;
+  const conflicts = conflictGeojson || EMPTY;
 
   useEffect(() => {
     if (!leftElement.current || !rightElement.current || left.current) return;
     const center: [number, number] = [78.0358, 27.1609];
     const makeMap = (element: HTMLDivElement, data: GeoJsonCollection, isFinal: boolean) => new MLMap({
-      container: element, style: style(data, isFinal), center, zoom: 15, attributionControl: false, dragRotate: false, touchZoomRotate: false,
+      container: element, style: style(data, isFinal, isFinal ? conflicts : EMPTY), center, zoom: 15, attributionControl: false, dragRotate: false, touchZoomRotate: false,
     });
     const legacy = makeMap(leftElement.current, raw, false);
     const harmonizedMap = makeMap(rightElement.current, final, true);
@@ -91,11 +93,11 @@ export function DualMap({ harmonized, selectedParcelId, onSelectParcel, sourceGe
   useEffect(() => {
     const replace = (map: MLMapType | null, data: GeoJsonCollection, isFinal: boolean) => {
       if (!map) return;
-      map.setStyle(style(data, isFinal));
+      map.setStyle(style(data, isFinal, isFinal ? conflicts : EMPTY));
     };
     replace(left.current, raw, false);
     replace(right.current, final, true);
-  }, [raw, final, harmonized]);
+  }, [raw, final, conflicts, harmonized]);
 
   useEffect(() => {
     const collection = harmonized && final.features.length ? final : raw;
