@@ -11,4 +11,6 @@ async def upload_spatial_files(files: list[UploadFile] = File(...)):
     if not files:
         raise SpatialShiftError("Attach one or more spatial files.", code="NO_FILES")
     record = await ingest_uploads(files)
-    return success_payload(dataset_summary(record), message="Geometries normalized to EPSG:32643.")
+    summary = dataset_summary(record)
+    summary["geojson"] = record.gdf.to_crs("EPSG:4326").__geo_interface__
+    return success_payload(summary, message="Source data was ingested and normalized to EPSG:32643.")
