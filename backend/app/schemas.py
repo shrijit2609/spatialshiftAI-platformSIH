@@ -36,6 +36,11 @@ class SpatialAnalysisRequest(BaseModel):
     attribute_fields: list[str] = Field(default_factory=list)
 
 
+class FeatureExtractionRequest(BaseModel):
+    dataset_id: str
+    min_area_m2: float = Field(default=12.0, ge=0)
+
+
 class ConfidenceBreakdown(BaseModel):
     geometry_validity: float
     sliver_cleanliness: float
