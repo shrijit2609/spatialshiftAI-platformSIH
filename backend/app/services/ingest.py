@@ -173,7 +173,11 @@ async def ingest_uploads(files: list[UploadFile]) -> DatasetRecord:
             gdf = _read_csv(next(path for path in written if _suffix(path.name) in CSV_EXTS))
         else:
             gdf = _read_raster_footprint(next(path for path in written if _suffix(path.name) in RASTER_EXTS))
-        return store.put(DatasetRecord(gdf=normalize_crs(gdf), source_format=source_format, filename=display_name))
+        record = DatasetRecord(gdf=normalize_crs(gdf), source_format=source_format, filename=display_name)
+        if source_format == "geotiff":
+            raster_path = next(path for path in written if _suffix(path.name) in RASTER_EXTS)
+            record.raster_bytes = raster_path.read_bytes()
+        return store.put(record)
 
 
 def dataset_summary(record: DatasetRecord) -> dict:
