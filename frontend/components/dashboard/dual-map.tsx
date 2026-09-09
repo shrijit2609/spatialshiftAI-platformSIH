@@ -1,10 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Map as MLMap, type Map as MLMapType, type MapGeoJSONFeature, type MapMouseEvent, type StyleSpecification } from 'maplibre-gl';
+import { Map as MLMap, setWorkerUrl, type Map as MLMapType, type MapGeoJSONFeature, type MapMouseEvent, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Compass, Layers, ZoomIn, ZoomOut } from 'lucide-react';
 import type { GeoJsonCollection } from '@/lib/api';
+
+if (typeof window !== 'undefined' && typeof setWorkerUrl === 'function') {
+  try {
+    setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
+  } catch (e) {
+    // ignore if worker URL cannot be set
+  }
+}
 
 interface DualMapProps {
   harmonized: boolean;
@@ -86,8 +94,6 @@ export function DualMap({ harmonized, selectedParcelId, onSelectParcel, sourceGe
       map.on('mouseleave', 'parcel-fill', () => { map.getCanvas().style.cursor = ''; });
     });
     return () => { legacy.remove(); harmonizedMap.remove(); left.current = null; right.current = null; };
-  // MapLibre owns its sources; data is refreshed in the next effect.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
