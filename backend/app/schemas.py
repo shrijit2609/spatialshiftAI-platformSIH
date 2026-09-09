@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -28,6 +28,14 @@ class HarmonizeRequest(BaseModel):
     overlap_area_m2: float = Field(default=0.5, ge=0)
 
 
+class SpatialAnalysisRequest(BaseModel):
+    cadastral_dataset_id: str
+    reference_dataset_id: str
+    iou_threshold: float = Field(default=0.5, ge=0, le=1)
+    change_iou_threshold: float = Field(default=0.8, ge=0, le=1)
+    attribute_fields: list[str] = Field(default_factory=list)
+
+
 class ConfidenceBreakdown(BaseModel):
     geometry_validity: float
     sliver_cleanliness: float
@@ -35,8 +43,9 @@ class ConfidenceBreakdown(BaseModel):
     node_snap_quality: float
     compactness: float
     rule_based_score: float
-    xgboost_score: Optional[float]
-    model: Literal["hybrid", "rule_based"]
+    score: float
+    model: str
+    methodology: str
 
 
 class HarmonizeResponse(BaseModel):
