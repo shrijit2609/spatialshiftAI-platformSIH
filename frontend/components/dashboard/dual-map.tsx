@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Map as MLMap,
-  setWorkerUrl,
   type Map as MLMapType,
   type MapGeoJSONFeature,
   type MapMouseEvent,
@@ -29,13 +28,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { getRasterPreviewUrl, type GeoJsonCollection, type RasterInfo } from '@/lib/api';
 
-if (typeof window !== 'undefined' && typeof setWorkerUrl === 'function') {
-  try {
-    setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
-  } catch (e) {
-    // Ignore worker URL fallback
-  }
-}
+
 
 interface DualMapProps {
   harmonized: boolean;

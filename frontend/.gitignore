@@ -12,9 +12,6 @@
 /.next/
 /out/
 
-# copied from node_modules at Next startup
-/public/maplibre/
-
 # production
 /build
 
